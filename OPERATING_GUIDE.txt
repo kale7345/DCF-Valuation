@@ -1,0 +1,127 @@
+DCF VALUATION MODEL - OPERATING GUIDE
+======================================
+
+1. What the model does
+----------------------
+The model estimates what one share of a public company is worth today based
+on the company's future free cash flow (FCF).
+
+The calculation follows this sequence:
+
+  1. Download annual income statement, balance sheet, cash flow statement,
+     and market data from Yahoo Finance through yfinance.
+  2. Read the latest revenue, EBIT, tax, depreciation, capital expenditure,
+     and non-cash working-capital values.
+  3. Convert those historical values into operating assumptions as percentages
+     of revenue.
+  4. Project revenue and FCF for five years.
+  5. Calculate the cost of equity with CAPM:
+
+       cost of equity = risk-free rate + beta * market risk premium
+
+  6. Combine the cost of equity and after-tax cost of debt into WACC.
+  7. Discount forecast FCF and terminal value back to today.
+  8. Subtract net debt and divide by shares outstanding to get fair value per
+     share.
+  9. Print a sensitivity table showing fair value at different WACC and
+     terminal-growth assumptions.
+
+FCF is calculated as:
+
+  NOPAT + depreciation and amortization - capital expenditure
+  - change in non-cash working capital
+
+2. Environment setup
+--------------------
+The VS Code workspace is configured to use a Python 3.14.4 virtual environment
+managed by UV.
+
+The required packages are:
+
+  yfinance
+  pandas
+  numpy
+
+Install them into the configured environment from the workspace folder with:
+
+  .venv\Scripts\python.exe -m pip install yfinance pandas numpy
+
+In VS Code, use the Python interpreter selected for this workspace. Do not rely
+on the Windows Store "python" alias if it points to an unavailable executable.
+
+3. How to run it
+----------------
+From the DCF Valuation workspace folder, run the default Apple model:
+
+  .venv\Scripts\python.exe dcf_valuation\dcf.py
+
+Or provide another Yahoo Finance ticker as the first argument:
+
+  .venv\Scripts\python.exe dcf_valuation\dcf.py MSFT
+  .venv\Scripts\python.exe dcf_valuation\dcf.py KO
+
+Use the Python executable selected by VS Code in its integrated terminal, or
+replace .venv\Scripts\python.exe with the full interpreter path shown above.
+
+The output contains:
+
+  - A five-year projection table in USD.
+  - Cost of equity and calculated WACC.
+  - Enterprise value and equity value.
+  - Fair value per share compared with the current market price.
+  - A 5 by 5 sensitivity table for WACC versus terminal growth.
+
+The script needs an internet connection because financial data is downloaded
+when it runs. Yahoo Finance data can be revised or temporarily unavailable.
+
+4. How to customize the model
+-----------------------------
+Open dcf_valuation\dcf.py and edit the ASSUMPTIONS dictionary near the top.
+
+Common changes include:
+
+  revenue_growth
+      Five forecast growth rates, one for each projected year. There must be
+      five values unless the projection logic and forecast_years are changed
+      together.
+
+  risk_free_rate
+      The assumed risk-free interest rate used by CAPM.
+
+  market_risk_premium
+      The equity market risk premium used by CAPM.
+
+  cost_of_debt
+      The pre-tax borrowing cost used in WACC.
+
+  terminal_growth
+      Long-run growth after the explicit forecast. It must be lower than WACC.
+
+  forecast_years
+      The number of forecast years. Keep this consistent with revenue_growth.
+
+The model derives ebit_margin, tax_rate, da_pct_rev, capex_pct_rev, and
+nwc_pct_rev from the latest downloaded financial statements. To override those
+values for a scenario, replace the corresponding values after load_inputs()
+returns its assumptions, before project_free_cash_flows() is called in main().
+
+5. Reading the results
+----------------------
+A higher terminal growth rate or lower WACC increases fair value. This is
+because future cash flows are discounted less heavily and terminal value grows.
+A fair value above the market price means the model assumptions imply upside;
+a fair value below it means the market price is higher than the model's output.
+
+Treat the result as a valuation range rather than a precise target. Terminal
+value can represent a large share of enterprise value, and the result is
+sensitive to margins, growth, capital spending, working capital, WACC, and the
+quality of the downloaded financial data.
+
+Before relying on a result, check that:
+
+  - Forecast FCF is positive or has a defensible explanation if negative.
+  - FCF as a percentage of revenue is broadly reasonable and stable.
+  - WACC is greater than terminal growth.
+  - The selected company's statements contain the required rows.
+  - Shares outstanding, debt, cash, beta, and market price are current enough
+    for the purpose of the analysis.
